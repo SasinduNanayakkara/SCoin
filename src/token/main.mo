@@ -1,14 +1,17 @@
 import Principal "mo:base/Principal";
 import HashMap "mo:base/HashMap";
 import Debug "mo:base/Debug";
+import Iter "mo:base/Iter";
 
 actor Token {
     var owner : Principal = Principal.fromText("65zmw-x3tgt-mbyk6-73xwy-g2c43-a236m-75jod-pkics-i2zog-sdgzb-3qe");
     var totalSupply : Nat = 1000000;
     var symbol : Text = "SCoin";
 
-    var balances = HashMap.HashMap<Principal, Nat>(1, Principal.equal, Principal.hash);
-    balances.put(owner, totalSupply);
+   private stable var balanceEntries: [(Principal, Nat)] = [];
+
+    private var balances = HashMap.HashMap<Principal, Nat>(1, Principal.equal, Principal.hash);
+    // balances.put(owner, totalSupply);
 
     public query func balanceOf(who: Principal) : async Nat {
 
@@ -25,15 +28,43 @@ actor Token {
     };
 
     public shared(msg) func payOut() : async Text {
-        // Debug.print(debug_show(msg.caller));
+        Debug.print(debug_show(msg.caller));
         if(balances.get(msg.caller) == null) {
             let amount = 100;
-            balances.put(msg.caller, amount);
+            let result = await transfer(msg.caller, amount);
+            return result;
             return "Success";
         }
         else {
             return "Already claimed";
+        };
+    };
+
+    public shared(msg) func transfer(to: Principal, amount: Nat) : async Text {
+        let fromBalance = await balanceOf(msg.caller);
+        if(fromBalance > amount) {
+            let newFromBalance : Nat = fromBalance - amount;
+            balances.put(msg.caller, newFromBalance);
+
+            let toBalance = await balanceOf(to);
+            let newToBalance = toBalance + amount;
+            balances.put(to, newToBalance);
+            return "Success";
         }
+        else {
+            return "Insuffiecent Funds";
+        };
+
+        system func preUpgrade() {
+            balanceEntries := Iter.toArray(balances.entries())
+        };
+
+        system func postUpgrade() {
+            balances := HashMap.fromIter<Principal, Nat>(balanceEntries.val(), 1, Principal.equal, Principal.hash);
+            if(balances.size() < 1) {
+                balances.put(owner, totalSupply);
+            };
+        };
     };
  
 };
