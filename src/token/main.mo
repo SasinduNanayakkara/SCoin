@@ -53,17 +53,18 @@ actor Token {
         }
         else {
             return "Insuffiecent Funds";
-        };
+        }
 
-        system func preUpgrade() {
-            balanceEntries := Iter.toArray(balances.entries())
-        };
+    };
+    
+    system func preupgrade() {
+        balanceEntries := Iter.toArray(balances.entries())
+    };
 
-        system func postUpgrade() {
-            balances := HashMap.fromIter<Principal, Nat>(balanceEntries.val(), 1, Principal.equal, Principal.hash);
-            if(balances.size() < 1) {
-                balances.put(owner, totalSupply);
-            };
+    system func postupgrade() {
+        balances := HashMap.fromIter<Principal, Nat>(balanceEntries.vals(), 1, Principal.equal, Principal.hash);
+        if(balances.size() < 1) {
+            balances.put(owner, totalSupply);
         };
     };
  
